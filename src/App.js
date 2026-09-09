@@ -1,24 +1,33 @@
-import logo from './logo.svg';
 import './App.css';
+import { ExamProvider, useExam, STATUS } from './context/ExamContext';
+import ConfigScreen from './components/ConfigScreen';
+import ExamScreen from './components/ExamScreen';
+import ReviewScreen from './components/ReviewScreen';
+import ResultDashboard from './components/ResultDashboard';
+
+function ExamRouter() {
+  const { state } = useExam();
+
+  switch (state.status) {
+    case STATUS.EXAM:
+      return <ExamScreen />;
+    case STATUS.REVIEW:
+      return <ReviewScreen />;
+    case STATUS.RESULT:
+      return <ResultDashboard />;
+    case STATUS.CONFIG:
+    default:
+      return <ConfigScreen />;
+  }
+}
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <ExamProvider>
+      <div className="app-root">
+        <ExamRouter />
+      </div>
+    </ExamProvider>
   );
 }
 
