@@ -143,6 +143,7 @@ When "Show explanation instantly after answering" is on:
   * Display user's choice vs correct `solutions`.
   * Highlight correct answers in Green, incorrect user selections in Red.
   * Display full `explanation` text formatted cleanly.
+  * Show the same **Key words** chips (`key_word`) at the bottom of each question's explanation box, using the shared `KeyWords` component.
 
 ---
 

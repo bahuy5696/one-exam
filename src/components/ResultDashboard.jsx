@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useExam } from '../context/ExamContext';
 import { PASSING_SCORE } from '../utils/scoreCalculator';
+import KeyWords from './KeyWords';
 
 const CHOICE_ORDER = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
 
@@ -198,6 +199,7 @@ export default function ResultDashboard() {
                   <div className="detail-explanation">
                     <span className="explanation-label">Explanation</span>
                     <p>{q.explanation}</p>
+                    <KeyWords keyWords={q.key_word} />
                   </div>
                 </div>
               );

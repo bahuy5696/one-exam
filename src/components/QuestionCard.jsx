@@ -6,6 +6,7 @@
 import React from 'react';
 import { Check } from 'lucide-react';
 import { useExam } from '../context/ExamContext';
+import KeyWords from './KeyWords';
 
 const CHOICE_ORDER = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
 
@@ -102,18 +103,7 @@ export default function QuestionCard() {
             </span>
           </div>
           <p className="explanation-text">{question.explanation}</p>
-          {Array.isArray(question.key_word) && question.key_word.length > 0 && (
-            <div className="key-words">
-              <span className="key-words-label">Key words</span>
-              <ul className="key-words-list">
-                {question.key_word.map((kw) => (
-                  <li key={kw} className="key-word">
-                    {kw}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <KeyWords keyWords={question.key_word} />
         </div>
       )}
     </div>
