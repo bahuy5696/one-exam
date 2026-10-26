@@ -499,8 +499,10 @@
       "C": "Create a customer managed KMS key and an S3 bucket in each Region. Configure the S3 buckets to use server-side encryption with Amazon S3 managed encryption keys (SSE-S3). Configure replication between the S3 buckets.",
       "D": "Create a customer managed KMS key and an S3 bucket in each Region. Configure the S3 buckets to use server-side encryption with AWS KMS keys (SSE-KMS). Configure replication between the S3 buckets."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "B"
+    ],
+    "explanation": "The key requirement is that both Regions must encrypt and decrypt with the SAME KMS key, and a copy of that key must exist in each Region. A standard KMS key is tied to a single Region, so creating one key per Region produces two different keys and cannot satisfy this. Only a multi-Region KMS key is replicated across Regions as a set of keys that share the same key ID and key material, so ciphertext produced in one Region can be decrypted in the other with no re-encryption. SSE-S3 is ruled out because the company must use its own customer managed key, not an S3 managed key. SSE-KMS with a separate single-Region key in each Region fails the same-key requirement, and cross-Region replication would have to re-encrypt objects with the destination key. Using the multi-Region key with client-side encryption keeps one key and replication of the already encrypted objects, which is the least operational overhead among the options."
   },
   {
     "question_number": "37",
@@ -1119,9 +1121,9 @@
       "D": "Export the AMI from the source account to an Amazon S3 bucket in the MSP Partner's AWS account, Encrypt the S3 bucket with a new KMS key that is owned by the MSP Partner. Copy and launch the AMI in the MSP Partner's AWS account."
     },
     "solutions": [
-      null
+      "B"
     ],
-    "explanation": null
+    "explanation": "Sharing an encrypted AMI involves two separate permissions: who may launch the image, and who may use the KMS key that protects its snapshots. The most secure approach limits both to exactly one account. Launch permissions on the AMI are scoped to the partner's account ID instead of being opened to everyone, and the key policy adds that same account as a user of the existing key so it can decrypt the snapshots. Making the image public exposes it to every AWS customer. Pointing the key policy at a key owned by the partner does nothing, because the snapshots are encrypted with the source account's key, not the partner's. Exporting through S3 adds steps and copies the data outside the normal AMI sharing flow, which increases exposure rather than reducing it."
   },
   {
     "question_number": "81",
@@ -2689,8 +2691,10 @@
       "C": "Migrate the ordering application to Amazon DynamoDB with on-demand capacity.",
       "D": "Schedule the reporting queries for non-peak hours."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "A"
+    ],
+    "explanation": "The timeouts happen because long reporting queries compete with transactional traffic on the same DB instance. A read replica provides an asynchronously replicated copy of the database that is ideal for read-only reporting, so moving those queries off the primary removes the contention without stopping employees from running them. Sending the order application itself to the replica does not help, because orders need writes and the replica is read-only. Moving to DynamoDB is a large re-architecture that is not justified by a reporting workload. Restricting reports to off-peak hours prevents employees from querying when they need to, which violates the requirement."
   },
   {
     "question_number": "192",
@@ -2701,8 +2705,11 @@
       "C": "Create an Auto Scaling group of Amazon EC2 instances to run a custom application that processes the scanned files and extracts the medical information.",
       "D": "Create an AWS Lambda function that runs when new documents are uploaded. Use Amazon Rekognition to convert the documents to raw text. Use Amazon Transcribe Medical to detect and extract relevant medical information from the text. E. Create an AWS Lambda function that runs when new documents are uploaded. Use Amazon Textract to convert the documents to raw text. Use Amazon Comprehend Medical to detect and extract relevant medical information from the text."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "B",
+      "E"
+    ],
+    "explanation": "Two pieces are needed: an extraction pipeline for scanned documents and a queryable store. For extraction, Amazon Textract is the service that reads text from scanned images and forms, and Amazon Comprehend Medical is the NLP service that identifies medical entities in that text; wiring both into a Lambda function triggered on upload gives event-driven, serverless processing that scales with the daily volume. For storage, writing the results to S3 and querying with Athena gives standard SQL over the data with no servers to manage. Rekognition is for image and video analysis, not document OCR, and Transcribe Medical handles speech, not text. A self-managed MySQL on EC2 or an Auto Scaling fleet running custom parsing code adds operational burden and does not scale as efficiently."
   },
   {
     "question_number": "193",
@@ -2713,8 +2720,10 @@
       "C": "Use Amazon Route 53 DNS caching",
       "D": "Use Amazon ElastiCache for Memcached."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "B"
+    ],
+    "explanation": "The goal is to cut database reads, which points to caching frequently read results in front of the databases rather than adding more database capacity. Of the two ElastiCache engines, only Redis supports replication, Multi-AZ, and automatic failover, so it satisfies the high availability requirement; Memcached nodes hold data in a single node with no replication. Read replicas spread reads across more instances but every read still hits a database, so the total read count is not reduced. Route 53 caches DNS answers, which is unrelated to database query volume."
   },
   {
     "question_number": "194",
@@ -2725,8 +2734,10 @@
       "C": "Launch two EC2 instances, each in a different AWS Region. Install the database on both EC2 instances. Set up database replication. Fail over the database to a second Region.",
       "D": "Launch an EC2 instance in an Availability Zone. Install the database on the EC2 instance. Use an Amazon Machine Image (AMI) to back up the data. Use EC2 automatic recovery to recover the instance if a disruptive event occurs."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "A"
+    ],
+    "explanation": "Automatic failover for a self-managed database on EC2 requires a second live instance that already has the data and can take over. Running two instances in different Availability Zones of the same Region, clustered together with replication between them, gives both fault isolation and immediate failover. Restoring from an AMI through CloudFormation or EC2 automatic recovery is a single-instance design: recovery takes time and the data on the AMI is only as fresh as the last backup, so it is neither highly available nor automatic in the required sense. Spreading the pair across two Regions adds latency to replication and typically needs a manual cross-Region failover, which is more than the question requires."
   },
   {
     "question_number": "195",
@@ -2737,8 +2748,10 @@
       "C": "Move the EC2 instances into an Auto Scaling group. Configure the order system to send messages to an Amazon Simple Queue Service (Amazon SQS) queue. Configure the EC2 instances to consume messages from the queue.",
       "D": "Create an Amazon Simple Notification Service (Amazon SNS) topic. Create an AWS Lambda function, and subscribe the function to the SNS topic. Configure the order system to send messages to the SNS topic. Send a command to the EC2 instances to process the messages by using AWS Systems Manager Run Command."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "C"
+    ],
+    "explanation": "Orders are lost today because a request goes straight to an instance and disappears when that instance fails. Placing a durable queue between the clients and the processors decouples the two: each order is persisted in SQS until a consumer successfully deletes it, and if an instance fails mid-processing the message becomes visible again and another instance picks it up. An Auto Scaling group keeps enough consumers running. A load balancer only routes requests and holds nothing, so an in-flight order is still lost. Pushing through SNS to Lambda and then using Run Command to instruct instances is convoluted and SNS does not retain messages for later reprocessing."
   },
   {
     "question_number": "196",
@@ -2749,8 +2762,10 @@
       "C": "Configure Amazon DynamoDB Streams to invoke an AWS Lambda function when a new item is created in the table. Configure the Lambda function to delete items in the table that are older than 30 days.",
       "D": "Extend the application to add an attribute that has a value of the current timestamp plus 30 days to each new item that is created in the table. Configure DynamoDB to use the attribute as the TTL attribute."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "D"
+    ],
+    "explanation": "DynamoDB has a built-in Time to Live feature: when an item carries an expiration timestamp in a designated attribute, the service deletes it automatically after that time at no additional cost and without consuming write capacity. Having the application stamp each new item with an expiry 30 days out and enabling TTL on that attribute is therefore the cheapest and simplest option. Deleting items from a Lambda function or an EC2 script consumes write capacity, requires scanning for old items, and adds code to maintain. Redeploying a whole stack every 30 days would destroy the table and all data in it, not just the old entries."
   },
   {
     "question_number": "197",
@@ -2761,8 +2776,11 @@
       "C": "Replatform the application to run on Amazon EC2 with the Amazon Linux Amazon Machine Image (AMI).",
       "D": "Use AWS Database Migration Service (AWS DMS) to migrate from the Oracle database to Amazon DynamoDB in a Multi-AZ deployment. E. Use AWS Database Migration Service (AWS DMS) to migrate from the Oracle database to Oracle on Amazon RDS in a Multi-AZ deployment."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "B",
+      "E"
+    ],
+    "explanation": "Minimizing development changes means keeping the .NET application and the Oracle database engine as they are, while gaining high availability from managed services. Elastic Beanstalk has a native Windows .NET platform and can run the application across multiple Availability Zones behind a load balancer, so the code moves largely unchanged. Keeping Oracle on Amazon RDS with Multi-AZ provides synchronous standby and automatic failover for the database, and DMS handles the data transfer. Rewriting for Lambda or switching to DynamoDB would require significant code and data model changes. Moving to Amazon Linux is a replatform that a Windows .NET application cannot simply undergo."
   },
   {
     "question_number": "198",
@@ -2773,8 +2791,10 @@
       "C": "Use Amazon Elastic Kubernetes Service (Amazon EKS) with Amazon EC2 worker nodes for compute and Amazon DynamoDB for data storage.",
       "D": "Use Amazon Elastic Kubernetes Service (Amazon EKS) with AWS Fargate for compute and Amazon DocumentDB (with MongoDB compatibility) for data storage."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "D"
+    ],
+    "explanation": "With no code or deployment changes allowed, the workloads must still run as Kubernetes deployments and still talk to a MongoDB-compatible database. Amazon EKS keeps the existing Kubernetes manifests and tooling working, and running pods on Fargate removes the need to manage worker nodes. Amazon DocumentDB speaks the MongoDB wire protocol, so the application connects as before while AWS handles patching, backups, and scaling of the database. Moving to ECS would change the deployment method, and switching to DynamoDB would require rewriting data access code. Running MongoDB on EC2 keeps the database operational burden on the company."
   },
   {
     "question_number": "199",
@@ -2785,8 +2805,10 @@
       "C": "Use Amazon Translate for multiple speaker recognition. Store the transcript files in Amazon Redshift. Use SQL queries for transcript file analysis.",
       "D": "Use Amazon Rekognition for multiple speaker recognition. Store the transcript files in Amazon S3. Use Amazon Textract for transcript file analysis."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "B"
+    ],
+    "explanation": "The task combines speech-to-text with speaker identification, followed by ad hoc analysis of the resulting text files. Amazon Transcribe is the service that converts audio to text and includes speaker diarization, which labels which speaker said each segment. Its output lands naturally in S3, where Athena can run SQL over the transcripts without loading them anywhere, and S3 storage classes and lifecycle rules cover the 7-year retention cheaply. Rekognition works on images and video, not audio, and Translate converts text between languages. Textract extracts text from scanned documents, which is not what call recordings require."
   },
   {
     "question_number": "200",
@@ -2797,8 +2819,10 @@
       "C": "Send the user’s email address in the header with every request. Invoke an AWS Lambda function to validate that the user with that email address has proper access.",
       "D": "Configure an Amazon Cognito user pool authorizer in API Gateway to allow Amazon Cognito to validate each request."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "D"
+    ],
+    "explanation": "API Gateway has a native integration with Cognito user pools: an authorizer of that type validates the JSON Web Token in each request against the user pool with no custom code, so the application only needs to pass the token it already receives at login. That is a fully managed control with essentially no development effort. A Lambda authorizer could validate the same token, but the company would have to write and maintain that function. API keys identify calling applications for usage plans and are not an authentication mechanism for individual users. Trusting an email address sent in a header is insecure because any client could spoof it."
   },
   {
     "question_number": "201",
@@ -2893,8 +2917,10 @@
       "C": "Create a secondary index in DynamoDB for the table with the user requests.",
       "D": "Use the Amazon Simple Queue Service (Amazon SQS) queue and Lambda to buffer writes to DynamoDB."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "D"
+    ],
+    "explanation": "Requests are being lost because write bursts exceed what the DynamoDB table can absorb, and the budget prevents raising its throughput further. The fix is to decouple ingestion from the database write by placing a durable queue in the path: the API accepts the request and places it in SQS immediately, and a Lambda consumer drains the queue at a rate the table can handle. No request is dropped and callers see no change in behaviour. Adding server-side throttling on API Gateway would reject requests, which impacts users. DAX is a read-through cache and does not buffer writes. A secondary index increases write cost rather than relieving it."
   },
   {
     "question_number": "208",
@@ -2933,8 +2959,10 @@
       "C": "Provision two Amazon Simple Queue Service (Amazon SQS) queues: one for order collection and another for order fulfillment. Configure the EC2 instances to poll their respective queue. Scale the Auto Scaling groups based on notifications that the queues send.",
       "D": "Provision two Amazon Simple Queue Service (Amazon SQS) queues: one for order collection and another for order fulfillment. Configure the EC2 instances to poll their respective queue. Create a metric based on a backlog per instance calculation. Scale the Auto Scaling groups based on this metric."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "D"
+    ],
+    "explanation": "Two queues decouple the fast collection step from the slower fulfillment step, so a scaling event cannot lose an order because every order is persisted in SQS until it is processed. The remaining question is how to scale the consumer fleets efficiently. The recommended approach is a custom metric that divides the number of messages waiting in the queue by the number of running instances, which yields a backlog-per-instance figure that target tracking can keep at a desired value. That scales each group in proportion to its actual work, optimizing utilization. SQS does not push scaling notifications to Auto Scaling, so scaling on queue notifications is not a real mechanism. CPU-based scaling and fixed minimum capacity either over-provision for peak or scale on a signal that does not reflect queue depth."
   },
   {
     "question_number": "211",
@@ -3129,8 +3157,11 @@
       "C": "Create an Amazon Route 53 multivalue answer routing policy.",
       "D": "Launch three EC2 instances: two instances in one Availability Zone and one instance in another Availability Zone. E. Launch four EC2 instances: two instances in one Availability Zone and two instances in another Availability Zone."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "C",
+      "E"
+    ],
+    "explanation": "High availability requires instances in more than one Availability Zone, and fault tolerance means the loss of a zone should not remove capacity in an unbalanced way. Placing an equal number of instances in each of two zones keeps the application balanced if one zone fails. For DNS, a multivalue answer routing policy returns up to eight healthy IP addresses in random order and uses health checks to drop unhealthy ones, which satisfies the requirement that traffic reach all running instances randomly. A failover policy sends traffic to a single primary and only switches on failure, and a weighted policy distributes by fixed proportions rather than randomly across all healthy targets. An odd split of instances leaves one zone with less capacity."
   },
   {
     "question_number": "225",
@@ -3283,8 +3314,10 @@
       "C": "Use the AWS Schema Conversion Tool with AWS Database Migration Service (AWS DMS) using a memory optimized replication instance. Create a full load plus change data capture (CDC) replication task and a table mapping to select all tables.",
       "D": "Use the AWS Schema Conversion Tool with AWS Database Migration Service (AWS DMS) using a compute optimized replication instance. Create a full load plus change data capture (CDC) replication task and a table mapping to select the largest tables."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "C"
+    ],
+    "explanation": "Moving from Oracle to Aurora PostgreSQL is a heterogeneous migration, so the schema must first be converted with the AWS Schema Conversion Tool before DMS moves data. Because applications keep writing to both sides for several months, the DMS task must perform an initial full load and then continue capturing changes so the two databases stay in sync, and it must cover all tables rather than only the largest ones. Change data capture on a busy database is memory intensive, so a memory-optimized replication instance is the appropriate choice. DataSync is a file transfer service and cannot perform the initial load of a relational database."
   },
   {
     "question_number": "236",
@@ -3450,9 +3483,10 @@
       "D": "Create a global table and specify the AWS Regions where the table will be available. E. Enable automatic backups on the source instance by setting the backup retention period to a value other than 0."
     },
     "solutions": [
-      null
+      "C",
+      "E"
     ],
-    "explanation": null
+    "explanation": "Creating a read replica on RDS for MySQL has two prerequisites. The source must have automated backups enabled, because RDS uses the backup mechanism and binary logs to seed the replica; a retention period of 0 disables backups and blocks replica creation. In addition, long-running transactions should be allowed to finish first, since creating the replica takes a snapshot and active transactions can delay the process or cause replication lag. Binlog replication is managed by RDS itself and does not need to be enabled manually. Failover priority applies to Aurora replicas, not RDS for MySQL. Global tables are a DynamoDB concept and do not apply here."
   },
   {
     "question_number": "248",
@@ -3590,8 +3624,10 @@
       "C": "Create an Amazon EventBridge rule to invoke an AWS Lambda function on a schedule. Configure the Lambda function to send the EC2 Auto Scaling status data directly to Amazon S3.",
       "D": "Use a bootstrap script during the launch of an EC2 instance to install Amazon Kinesis Agent. Configure Kinesis Agent to collect the EC2 Auto Scaling status data and send the data to Amazon Kinesis Data Firehose. Store the data in Amazon S3."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "A"
+    ],
+    "explanation": "Auto Scaling publishes group metrics to CloudWatch, and a CloudWatch metric stream can push those metrics continuously to Kinesis Data Firehose, which batches and writes them to S3. The whole path is serverless, near real time, and completely outside the instance launch process, so it cannot slow launches down. An EMR cluster is a managed Hadoop environment and would be a heavyweight, non-serverless collector. Invoking Lambda on a schedule introduces polling delay and is not near real time. Installing an agent through a bootstrap script adds work to every launch, which directly conflicts with the requirement not to affect launch speed."
   },
   {
     "question_number": "258",
@@ -3956,8 +3992,10 @@
       "C": "Migrate the simulation application to Linux Amazon EC2 instances. Migrate the visualization application to Windows EC2 instances. Configure Amazon Simple Queue Service (Amazon SQS) to exchange data between the applications.",
       "D": "Migrate the simulation application to Linux Amazon EC2 instances. Migrate the visualization application to Windows EC2 instances. Configure Amazon FSx for NetApp ONTAP for storage."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "D"
+    ],
+    "explanation": "The core problem is that one application writes over NFS while the other reads over SMB, and the company currently keeps two copies in sync. A single file system that serves the same data through both protocols removes the duplication. Amazon FSx for NetApp ONTAP supports multi-protocol access, so a Linux EC2 instance can mount it over NFS and a Windows EC2 instance can map it over SMB, with no code changes to either application. Lambda cannot host a long-running Linux simulation or a Windows desktop application. FSx File Gateway is for on-premises access to FSx, not for in-cloud workloads on ECS. SQS passes messages, not files, and would require changing how both applications exchange data."
   },
   {
     "question_number": "284",
@@ -4167,9 +4205,9 @@
       "D": "Provision a subnet that extends across both Availability Zones. Configure the Auto Scaling group to distribute the EC2 instances across both Availability Zones. Configure the DB instance for Multi-AZ deployment."
     },
     "solutions": [
-      null
+      "C"
     ],
-    "explanation": null
+    "explanation": "A subnet in a VPC always belongs to exactly one Availability Zone, so any option that stretches a subnet across two zones is not possible. The correct design creates a separate subnet in each zone, lets the Auto Scaling group place instances across both, and turns on Multi-AZ for the RDS instance so a synchronous standby exists in the second zone with automatic failover. Configuring a database with connections to each network is not a feature; the standby and failover come from the Multi-AZ setting."
   },
   {
     "question_number": "299",
@@ -4308,9 +4346,10 @@
       "D": "Review the Trusted Advisor check for Amazon RDS Idle DB Instances. E. Review the Trusted Advisor check for Amazon Redshift Reserved Node Optimization."
     },
     "solutions": [
-      null
+      "B",
+      "C"
     ],
-    "explanation": null
+    "explanation": "With consolidated billing, Trusted Advisor in the management account can show checks for all member accounts in one place, which is the appropriate vantage point for a finance team reviewing the whole organization. The instances in question are active and have run on demand for 90 days, so the relevant cost check is the one that recommends Reserved Instances for steady RDS usage; that is what reduces the bill for continuously running databases. The idle instance check only flags databases with no connections, which does not describe these high-performance workloads, and the Redshift reserved node check applies to a different service. Reviewing each account individually is more work than using the consolidated view."
   },
   {
     "question_number": "309",
@@ -4350,9 +4389,9 @@
       "D": "Create multiple Amazon Kinesis Data Firehose delivery streams based on the quote type to deliver data streams to an Amazon OpenSearch Service cluster. Configure the application to send messages to the proper delivery stream. Configure each backend group of application servers to search for the messages from OpenSearch Service and process them accordingly."
     },
     "solutions": [
-      null
+      "C"
     ],
-    "explanation": null
+    "explanation": "Quotes must be separated by type, must not be lost, and can wait up to a day, which describes a durable queue per type with a fan-out mechanism. Publishing every quote to a single SNS topic and subscribing one SQS queue per type, with filter policies routing by a quote-type attribute, gives that separation with no custom routing code. SQS retains messages for up to 14 days, so nothing is lost and the 24-hour window is covered. Delivering directly to Lambda from SNS has no durable buffer and a failed invocation can drop the request. Kinesis streams are built for high-throughput ordered streaming and require the application to manage shards and checkpointing, which adds maintenance. Firehose into OpenSearch is a search and analytics path, not a work queue."
   },
   {
     "question_number": "312",
@@ -4406,9 +4445,9 @@
       "D": "Turn on Amazon Inspector. Deploy the Amazon Inspector agent to the EC2 instances. Configure an AWS Lambda function to automate the generation and distribution of reports that detail the findings."
     },
     "solutions": [
-      null
+      "D"
     ],
-    "explanation": null
+    "explanation": "The requirement is an active vulnerability scanner for EC2 instances that produces findings reports. Amazon Inspector is the service built for this: through its agent (the SSM Agent) it assesses instances for software vulnerabilities and unintended network exposure and generates findings that can be exported or distributed. GuardDuty is a threat detection service that analyzes logs and network activity for malicious behaviour; it does not scan installed software for CVEs. Macie discovers sensitive data in S3, and Shield protects against DDoS attacks. Neither of those examines instance vulnerabilities, and writing findings to CloudTrail is not how reporting works."
   },
   {
     "question_number": "316",
@@ -4576,9 +4615,9 @@
       "D": "Configure an Application Load Balancer (ALB) in front of the EC2 instances. Direct all outbound traffic to the ALB. Use a URL-based rule listener in the ALB’s target group for outbound access to the internet."
     },
     "solutions": [
-      null
+      "A"
     ],
-    "explanation": null
+    "explanation": "Filtering outbound traffic by domain name requires a device that can inspect DNS or TLS SNI, which security groups, network ACLs, and load balancers cannot do. AWS Network Firewall supports domain list rule groups that allow traffic only to approved fully qualified domain names and deny everything else, and the private subnet's route table is pointed at the firewall endpoint so all egress passes through it. Security group rules match on IP addresses and CIDR ranges, not URLs. AWS WAF protects inbound HTTP traffic to web applications and is not an egress control. An Application Load Balancer distributes incoming requests and cannot be used as an outbound gateway."
   },
   {
     "question_number": "328",
@@ -4772,9 +4811,9 @@
       "D": "Use a Lake Formation blueprint to ingest the data from the database to the S3 data lake. Use Lake Formation to enforce column-level access control for the QuickSight users. Use Amazon Athena as the data source in QuickSight."
     },
     "solutions": [
-      null
+      "D"
     ],
-    "explanation": null
+    "explanation": "Lake Formation already governs the data lake and provides column-level permissions natively, so the lowest-overhead design brings the Aurora data under the same governance. A Lake Formation blueprint is a managed workflow that ingests a relational database into S3 and registers it in the catalog, after which column-level grants for the marketing team are enforced automatically whenever QuickSight queries through Athena. IAM policies and S3 bucket policies operate on objects and prefixes and cannot restrict individual columns. EMR would require building and operating a cluster for a simple ingestion job, and Glue Elastic Views adds a separate materialization service without offering column-level authorization."
   },
   {
     "question_number": "342",
@@ -5125,8 +5164,10 @@
       "C": "Apply fine-grained IAM permissions to the premium content in the DynamoDB table.",
       "D": "Implement API usage plans and API keys to limit the access of users who do not have a subscription."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "D"
+    ],
+    "explanation": "The application already authenticates users through a Cognito user pool, so what is needed is a managed way to let only subscribed users reach the premium routes. API Gateway usage plans with API keys provide exactly this gating at the API layer: a key is issued to subscribers, premium methods require a key associated with the plan, and non-subscribers are rejected without any changes to the Lambda code. Caching and throttling control performance, not entitlement. WAF rules inspect request characteristics such as IP or headers and have no notion of subscriptions. Fine-grained IAM permissions on DynamoDB require identity pool credentials and per-item policies, which is significantly more work than a usage plan."
   },
   {
     "question_number": "367",
@@ -5462,9 +5503,10 @@
       "D": "Deploy an Amazon ElastiCache for Redis cluster to store customer session information. E. Use AWS Systems Manager Application Manager in the application to manage user session information."
     },
     "solutions": [
-      null
+      "B",
+      "D"
     ],
-    "explanation": null
+    "explanation": "Durable session storage means the session must survive the loss of any single web server, so it has to live in a shared, highly available store outside the EC2 fleet. DynamoDB and ElastiCache for Redis are the two standard choices: both are accessible from every instance, both replicate data across Availability Zones, and both offer the low latency that session lookups need. Sticky sessions keep a client pinned to one instance and the session disappears if that instance is terminated or scaled in. Cognito manages authentication and user identities, not arbitrary shopping-session state. Systems Manager Application Manager is an operations console for viewing resources and has no role in storing application sessions."
   },
   {
     "question_number": "391",
@@ -5630,9 +5672,9 @@
       "D": "Turn on S3 Versioning within the S3 bucket to preserve every version of every object that is ingested in the S3 bucket."
     },
     "solutions": [
-      null
+      "A"
     ],
-    "explanation": null
+    "explanation": "A Kinesis data stream created with default settings keeps records for only 24 hours. The application reads the stream every other day, so by the time it consumes, records older than a day have already expired and never reach S3. Extending the retention period, which can be raised to as much as 365 days, keeps the records available until the consumer runs. Using the Producer Library or adding shards changes how data is written and how much throughput the stream can absorb, but neither prevents expiry. S3 Versioning preserves overwritten objects and has no effect on data that never arrived."
   },
   {
     "question_number": "403",
@@ -5800,9 +5842,9 @@
       "D": "Deploy an AWS Transfer for SFTP endpoint. Create a script that checks for new files on the network share and uploads the new files by using SFTP."
     },
     "solutions": [
-      null
+      "B"
     ],
-    "explanation": null
+    "explanation": "The business system writes CSV files to a network share, and the data must appear in AWS in near real time with as little administration as possible. An S3 File Gateway presents an SMB or NFS share that is backed by an S3 bucket, so when the application is pointed at the new share each saved report is uploaded to S3 automatically with no scheduler, script, or custom code. DataSync on a daily schedule is not near real time, and driving the DataSync API from a custom application means writing and operating that application. An SFTP endpoint with a polling script adds a component to build and monitor and still introduces delay between file creation and upload."
   },
   {
     "question_number": "415",
@@ -5843,9 +5885,9 @@
       "D": "Purchase a Compute Savings Plan. Optimize the Lambda functions’ duration and memory usage, the number of invocations, and the amount of data that is transferred. Keep the Lambda functions in the Lambda service VPC."
     },
     "solutions": [
-      null
+      "C"
     ],
-    "explanation": null
+    "explanation": "The savings question has two dimensions: the pricing commitment and the network path. A Compute Savings Plan covers EC2, Fargate, and Lambda, so it discounts both resource types as the Lambda footprint grows, whereas an EC2 Instance Savings Plan applies only to a specific instance family and leaves Lambda at on-demand prices. For latency and cost, the functions should be attached to the private subnet that holds the instances, which keeps traffic inside the VPC on private addresses; placing them in a public subnet or leaving them in the Lambda service VPC would route traffic through public paths or NAT, adding both latency and data transfer charges. Optimizing memory, duration, invocation count, and data transferred reduces the remaining Lambda cost."
   },
   {
     "question_number": "418",
@@ -5902,7 +5944,7 @@
     "solutions": [
       "B"
     ],
-    "explanation": null
+    "explanation": "AWS Transfer Family replaces the self-managed SFTP servers with a serverless endpoint. For high IOPS shared storage, Amazon EFS is the right backing store, since it is a POSIX file system that supports high throughput and IOPS and lets the company keep managing user permissions through file system ownership and POSIX IDs. Highly configurable security is obtained by hosting the server on a VPC endpoint with internet-facing access and Elastic IP addresses, which allows a security group to restrict inbound connections to the trusted source addresses; a plain public endpoint cannot be protected with security groups. An EBS volume cannot be attached to Transfer Family at all. An internal-only VPC endpoint in a private subnet would not be reachable from the internet sources that need to use the service, and S3 does not provide the POSIX-level permission control and IOPS profile requested."
   },
   {
     "question_number": "422",
@@ -5927,8 +5969,11 @@
       "C": "Organization",
       "D": "Amazon Elastic Container Service (Amazon ECS) resource E. Amazon EC2 resource"
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "A",
+      "B"
+    ],
+    "explanation": "The JSON shown is an identity-based policy: it has Effect, Action, and Resource elements but no Principal element, because the principal is whatever identity the policy is attached to. Identity-based policies can be attached only to IAM users, groups, and roles. An organization is managed with service control policies, which are a different policy type that limits permissions rather than granting them. EC2 instances and ECS resources are not IAM principals; permissions reach them through an IAM role attached to the instance profile or task, not by attaching a policy to the resource itself."
   },
   {
     "question_number": "424",
@@ -5968,9 +6013,9 @@
       "D": "Use AWS Storage Gateway to move the existing data to Amazon S3. Use AWS CloudTrail to log management events."
     },
     "solutions": [
-      "D"
+      "A"
     ],
-    "explanation": null
+    "explanation": "The regulation calls for auditing access at every level of the stored data, which means object-level operations such as reads and writes must be recorded. In CloudTrail those are data events; management events only capture control-plane actions such as creating a bucket or changing its policy, so any option that logs management events alone cannot satisfy the audit requirement. For moving the existing on-premises data securely and at scale, AWS DataSync is the managed transfer service built for migrating file data into S3 over an encrypted connection. Transfer Acceleration speeds up uploads from a client but is not a migration tool, and Snowcone is an offline device suited to sites with poor connectivity rather than an ongoing migration of frequently changing data."
   },
   {
     "question_number": "427",
@@ -6009,8 +6054,10 @@
       "C": "Group members are allowed the ec2:StopInstances and ec2:TerminateInstances permissions for all Regions when logged in with multi- factor authentication (MFA). Group members are permitted any other Amazon EC2 action.",
       "D": "Group members are allowed the ec2:StopInstances and ec2:TerminateInstances permissions for the us-east-1 Region only when logged in with multi-factor authentication (MFA). Group members are permitted any other Amazon EC2 action within the us-east-1 Region."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "D"
+    ],
+    "explanation": "The policy contains two statements that must be read together. One statement allows all EC2 actions, but its condition limits them to the us-east-1 Region. The other statement denies the stop and terminate actions when the request was not made with multi-factor authentication. In IAM an explicit deny always overrides an allow, so group members can perform any EC2 action in us-east-1 except stopping or terminating instances, and those two actions become available only when the session is MFA-authenticated. Nothing in the policy grants permissions outside us-east-1, and the deny does not block all EC2 actions, only the two listed."
   },
   {
     "question_number": "430",
@@ -6078,8 +6125,10 @@
       "C": "Create an AWS CloudFormation template to create EC2 instances and a load balancer to be launched when needed. Configure the DynamoDB table as a global table. Configure DNS failover to point to the new disaster recovery Region's load balancer.",
       "D": "Create an Auto Scaling group and load balancer in the disaster recovery Region. Configure the DynamoDB table as a global table. Create an Amazon CloudWatch alarm to trigger an AWS Lambda function that updates Amazon Route 53 pointing to the disaster recovery load balancer."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "A"
+    ],
+    "explanation": "The least downtime comes from a warm standby that already exists in the second Region. Pre-creating the Auto Scaling group and load balancer there means compute is ready, and converting the DynamoDB table to a global table replicates writes to the second Region continuously so the data is already present. Route 53 DNS failover with health checks then redirects users automatically when the primary Region becomes unhealthy. Options that launch resources from a CloudFormation template only when needed add provisioning time during the outage, and creating the DynamoDB table at failover time means the data would not be there. Triggering a Lambda function from a CloudWatch alarm to rewrite DNS reimplements what Route 53 failover routing already provides."
   },
   {
     "question_number": "435",
@@ -6206,7 +6255,7 @@
     "solutions": [
       "A"
     ],
-    "explanation": null
+    "explanation": "The workload is users around the world transferring unique multi-gigabyte files in both directions. Because each file is unique, a cache such as CloudFront or ElastiCache offers little benefit; the latency problem is the long-haul network path. S3 Transfer Acceleration routes uploads and downloads through the nearest CloudFront edge location and then over the AWS backbone, which reduces latency for large objects over long distances without running any servers. Cache-Control headers only influence browser and CDN caching behaviour. Hosting on EC2 with CloudFront or ElastiCache adds compute to manage and still does not accelerate unique uploads."
   },
   {
     "question_number": "444",
@@ -6248,7 +6297,7 @@
     "solutions": [
       "D"
     ],
-    "explanation": null
+    "explanation": "A legal retention requirement calls for S3 Object Lock in compliance mode, because that mode prevents any user, including the root account, from deleting or shortening the retention of an object before the period ends. Governance mode can be bypassed by users with a special permission, so it does not guarantee retention. Object Lock settings apply automatically to new uploads, but objects that were already in the bucket need their retention applied separately; S3 Batch Operations can do that across all existing objects as a managed job, which is far less effort than recopying every object by hand. Versioning with a lifecycle delete rule and MFA delete does not stop an authorized user from removing data before 7 years."
   },
   {
     "question_number": "447",
@@ -6290,7 +6339,7 @@
     "solutions": [
       "B"
     ],
-    "explanation": null
+    "explanation": "The company wants to shed database, backup, and data center administration quickly, yet it relies on third-party features that need privileged operating system or database access, which standard RDS for Oracle does not allow. RDS Custom for Oracle keeps the managed backups, monitoring, and automation of RDS while granting access to the underlying OS and database so those features can be installed and configured. Running Oracle on an EC2 AMI would return all the administration the company is trying to avoid. Replacing the third-party features with cloud services or rewriting the application for PostgreSQL both require significant development effort and time, which conflicts with a quick migration."
   },
   {
     "question_number": "450",
@@ -6463,7 +6512,7 @@
     "solutions": [
       "B"
     ],
-    "explanation": null
+    "explanation": "A mobile game that uses both TCP and UDP needs a load balancer that operates at the transport layer, which is the Network Load Balancer; an Application Load Balancer handles only HTTP and HTTPS and cannot listen on UDP. To reduce latency for players worldwide, AWS Global Accelerator provides static anycast IP addresses that route each player onto the AWS backbone at the nearest edge location and supports TCP and UDP natively. CloudFront is an HTTP content delivery network and does not proxy arbitrary UDP game traffic, so neither CloudFront option fits."
   },
   {
     "question_number": "462",
@@ -6533,7 +6582,7 @@
     "solutions": [
       "A"
     ],
-    "explanation": null
+    "explanation": "The database tier already has a standby in a second Availability Zone, so the single point of failure is the application tier confined to one zone. Because the application is stateless, it can run as multiple instances in an Auto Scaling group that spans at least two zones, with an Application Load Balancer distributing traffic and health-checking each instance. That removes the dependency on any single instance or zone. Copying snapshots to another Region is a backup measure, not availability. Route 53 latency-based routing distributes between separate endpoints in different locations, which this single-Region deployment does not have, and Route 53 rules by themselves do not provide an Auto Scaling fleet."
   },
   {
     "question_number": "467",
@@ -6547,7 +6596,7 @@
     "solutions": [
       "B"
     ],
-    "explanation": null
+    "explanation": "Savings Plans purchased by one account in an organization can be applied to usage in other member accounts, but only if discount sharing is enabled, and that setting is controlled in the billing preferences of the management account, not in the member account that bought the plan. Turning it on lets the unused commitment cover eligible compute in the rest of the organization. Moving workloads between accounts is disruptive and unnecessary when sharing is available. Savings Plans cannot be sold; the Reserved Instance Marketplace is only for Standard Reserved Instances."
   },
   {
     "question_number": "468",
@@ -6561,7 +6610,7 @@
     "solutions": [
       "B"
     ],
-    "explanation": null
+    "explanation": "The frontend must be a REST API, which rules out the WebSocket API type. The backend containers live in private subnets with no public addresses, and API Gateway runs outside the VPC, so it needs a private integration to reach them. That is done with a VPC link, which connects API Gateway to a Network Load Balancer in front of the ECS services inside the VPC. Security groups control traffic at the instance or task level but cannot by themselves give API Gateway a network path into a private subnet."
   },
   {
     "question_number": "469",
@@ -6603,7 +6652,7 @@
     "solutions": [
       "C"
     ],
-    "explanation": null
+    "explanation": "Containers in a VPC that need to reach S3 privately, without traversing the internet or a NAT gateway, should use a gateway VPC endpoint. A gateway endpoint for S3 is added as a route target in the VPC route tables, carries no hourly or data processing charge, and keeps traffic on the AWS network. Associating it with every route table ensures all subnets use it. Intelligent-Tiering and Transfer Acceleration change storage cost and upload performance, not network connectivity. An interface endpoint for S3 is also possible but is a set of elastic network interfaces reached by DNS, not something that is associated with route tables, and it incurs hourly charges."
   },
   {
     "question_number": "472",
@@ -6659,7 +6708,7 @@
     "solutions": [
       "C"
     ],
-    "explanation": null
+    "explanation": "The file system must be mountable from containers in every Availability Zone, be highly durable, and be replicated to another Region with AWS Backup at a recovery point of 8 hours. Amazon EFS in the Standard storage class stores data redundantly across multiple zones, offers a mount target in each zone, integrates natively with ECS, and is supported by AWS Backup for cross-Region copies on a schedule. FSx for Windows is an SMB file system aimed at Windows workloads rather than Linux containers. FSx for NetApp ONTAP and FSx for OpenZFS expose endpoints in a limited set of zones and do not provide a per-zone mount target in the way EFS does."
   },
   {
     "question_number": "476",
@@ -6682,8 +6731,10 @@
       "A": "B.",
       "C": "D. Topic 1"
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "D"
+    ],
+    "explanation": "S3 permissions distinguish between actions on the bucket itself and actions on the objects inside it. Listing a bucket is a bucket-level action and is granted on the bucket ARN. Deleting an object is an object-level action, so the permission must be granted on the object ARN pattern, which is the bucket ARN followed by a slash and a wildcard. The existing policy grants the delete action against the bucket ARN alone, which never matches an object, so the deletion is denied. The fix that follows least privilege adds a single statement allowing only the delete-object action on the objects of that specific bucket, rather than granting broader actions or wildcard resources."
   },
   {
     "question_number": "478",
@@ -6796,7 +6847,7 @@
     "solutions": [
       "A"
     ],
-    "explanation": null
+    "explanation": "Rarely accessed archives that must be retrievable within five minutes fit S3 Glacier Flexible Retrieval using Expedited retrievals, which typically return data in one to five minutes while storage is billed at a deep-archive price. Standard retrievals from that class take three to five hours, which misses the requirement. S3 Standard-IA and One Zone-IA offer immediate access but their per-gigabyte storage price is several times higher, so for files that are almost never read they are not the cheapest option, and One Zone-IA also lacks multi-zone durability."
   },
   {
     "question_number": "486",
@@ -6866,7 +6917,7 @@
     "solutions": [
       "B"
     ],
-    "explanation": null
+    "explanation": "DynamoDB provides a native export feature that writes table data to S3 directly from the service's backup layer, so it consumes no read capacity and does not affect application availability; it requires point-in-time recovery to be turned on for the table and involves essentially no code. An EMR Hive job or a Lambda function that scans the table would read through the table's provisioned capacity and could slow the application. A Streams-based Lambda would capture only changes going forward rather than producing a backup of the full table, and it also means writing and maintaining code."
   },
   {
     "question_number": "491",
@@ -6877,8 +6928,10 @@
       "C": "Use the AWS Lambda event source mapping. Set Amazon Simple Queue Service (Amazon SQS) FIFO queues as the event source. Use AWS KMS keys (SSE-KMS). Add the kms:Decrypt permission for the Lambda execution role.",
       "D": "Use the AWS Lambda event source mapping. Set Amazon Simple Queue Service (Amazon SQS) standard queues as the event source. Use AWS KMS keys (SSE-KMS) for encryption. Add the encryption key invocation permission for the Lambda function."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "A"
+    ],
+    "explanation": "At-least-once delivery is the native guarantee of an SQS standard queue, and it is cheaper and higher throughput than a FIFO queue, whose exactly-once and ordering guarantees are not required here. Pairing the queue with a Lambda event source mapping gives a fully managed, asynchronous consumer. For encrypting sensitive card data at rest, SSE-KMS lets the bank use its own KMS key with auditable access, and for Lambda to read encrypted messages its execution role needs permission to decrypt with that key. The options that mention an encryption key invocation permission describe a permission that does not exist in IAM, and the FIFO options add cost without meeting a stated need."
   },
   {
     "question_number": "492",
@@ -6919,8 +6972,10 @@
       "C": "The \"Action\" field does not grant the actions that are required to terminate the EC2 instance.",
       "D": "The request to terminate the EC2 instance does not originate from the CIDR blocks 192.0.2.0/24 or 203.0.113.0/24."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "D"
+    ],
+    "explanation": "The policy has an allow statement for terminating instances and a deny statement that applies to all EC2 actions whenever the request's source IP address falls outside two listed CIDR ranges. An explicit deny overrides any allow, so a terminate call coming from an address outside those ranges is rejected with Access Denied even though the action itself is allowed. Identity-based policies never contain a Principal element, so a missing principal is not an error, and EC2 instances do not have resource-based policies. The required action is present in the allow statement, so the condition on the source IP is the cause."
   },
   {
     "question_number": "495",
@@ -6963,7 +7018,7 @@
     "solutions": [
       "C"
     ],
-    "explanation": null
+    "explanation": "Instances in a private subnet reach S3 in the same Region most efficiently and cheaply through a gateway VPC endpoint. The endpoint is added as a route in the private subnet's route table for the S3 prefix list, so traffic goes directly to S3 over the AWS network without passing through a NAT device, and there is no hourly or per-gigabyte charge. NAT instances and NAT gateways both work but add data processing cost and a bandwidth bottleneck for a service that moves large volumes of data, and a NAT instance in a private subnet with no internet route could not forward traffic at all."
   },
   {
     "question_number": "498",
@@ -6991,7 +7046,7 @@
     "solutions": [
       "D"
     ],
-    "explanation": null
+    "explanation": "Dedicated Direct Connect connections ordered directly from AWS are available only at 1, 10, and 100 Gbps, so a smaller dedicated port is not an option. Sub-1 Gbps capacity is obtained as a hosted connection from an AWS Direct Connect Partner, which provisions a share of the partner's connection at speeds such as 200 Mbps to the company's existing AWS account. That matches the low utilization at a lower price while keeping the same private, dedicated network path. Ordering another 1 Gbps connection and sharing it with another account does not reduce the company's own cost."
   },
   {
     "question_number": "500",
@@ -7049,7 +7104,7 @@
     "solutions": [
       "A"
     ],
-    "explanation": null
+    "explanation": "Cross-account access is most secure when no long-lived credentials change hands. Each customer creates an IAM role in their own account that carries only the read-only EC2 and CloudWatch permissions and whose trust policy names the monitoring company's account. The company then assumes that role to receive short-lived temporary credentials, and the customer can revoke access at any time by changing the trust policy. Collecting IAM user access keys, even if stored encrypted, means holding permanent credentials for many customer accounts. Cognito users are for application identities, not for AWS API access from another account. A custom token vending machine recreates what STS AssumeRole already does, with more surface area to secure."
   },
   {
     "question_number": "504",
@@ -7134,7 +7189,7 @@
     "solutions": [
       "B"
     ],
-    "explanation": null
+    "explanation": "The abusive traffic comes from a small, known set of IP addresses and hits the public web tier, so the fastest effective block is at the edge of the public subnets. Network ACLs support explicit deny rules, so adding inbound deny entries for those addresses on the web tier subnets drops the requests before they reach the load balancer. Security groups cannot contain deny rules; they only allow, so they cannot be used to block specific sources. Applying the block on the application tier subnets would be too late, since the load balancer in the web tier would already be absorbing the millions of requests."
   },
   {
     "question_number": "510",
@@ -7304,7 +7359,7 @@
     "solutions": [
       "C"
     ],
-    "explanation": null
+    "explanation": "The most secure cross-account pattern uses IAM roles rather than stored credentials. Each business account defines a role with read access to its table and a trust policy that allows only the specific application role in the inventory account to assume it; the application then obtains short-lived credentials through STS for each account it reads. No secret is ever stored or rotated, and each business team retains control over who can access its table. Creating IAM users with access keys introduces long-lived credentials that must be distributed and rotated. Secrets Manager and ACM certificates are not authentication mechanisms for DynamoDB."
   },
   {
     "question_number": "522",
@@ -7399,8 +7454,10 @@
       "C": "Use AWS Transfer Family to create an FTP server to store incoming files on an Amazon Elastic Block Store (Amazon EBS) volume. Configure a job queue in AWS Batch. Use an Amazon S3 event notification when each file arrives to invoke the job in AWS Batch. Delete the files after the job has processed the files.",
       "D": "Use AWS Transfer Family to create an FTP server to store incoming files in Amazon S3 Standard. Create an AWS Lambda function to process the files and to delete the files after they are processed. Use an S3 event notification to invoke the Lambda function when the files arrive."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "D"
+    ],
+    "explanation": "The constraints are: keep the existing FTP clients working, process each file as soon as it arrives, finish within minutes, and delete the file afterwards, all with minimal operations. AWS Transfer Family provides a managed FTP server that writes incoming files straight into S3, so clients only need a new endpoint address. An S3 event notification can invoke a Lambda function the moment a file lands; a 3-to-8-minute job fits within the 15-minute Lambda limit, and the function can delete the object when it finishes. Running an FTP server on EC2 means managing an instance, and nightly batch processing fails the requirement to process immediately. Transfer Family cannot write to an EBS volume, and Glacier storage would add retrieval latency."
   },
   {
     "question_number": "529",
@@ -7484,9 +7541,9 @@
       "D": "Transition objects to the S3 One Zone-Infrequent Access (S3 One Zone-IA) storage class 30 days after creation. Move all objects to the S3 Glacier Flexible Retrieval storage class after 90 days. Write an expiration action that directs Amazon S3 to delete objects after 90 days."
     },
     "solutions": [
-      "B"
+      "C"
     ],
-    "explanation": null
+    "explanation": "Objects land in S3 Standard by default, which covers the first 30 days of frequent, highly available access. After that the logs are kept only as a backup, so the cheapest suitable storage class is an archive tier, and the lifecycle then only needs an expiration at day 90. Glacier Flexible Retrieval costs a fraction of Standard-IA per gigabyte, and even after paying for its 90-day minimum storage duration on objects deleted after 60 days, it remains cheaper than keeping the same data in Standard-IA. Transitioning to Standard after 30 days does nothing because the objects are already in Standard. The options that move objects to Glacier at day 90 while also expiring them at day 90 contain a pointless transition and keep the data in a more expensive class for the whole backup period."
   },
   {
     "question_number": "535",
@@ -7553,8 +7610,10 @@
       "C": "Use AWS Elastic Disaster Recovery configured to replicate disk changes to AWS as a pilot light.",
       "D": "Use third-party backup software to capture backups every night. Store a secondary set of backups in Amazon S3."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "C"
+    ],
+    "explanation": "A recovery point of 30 seconds rules out nightly backups, and a recovery time of 60 minutes rules out anything that needs a lengthy rebuild. AWS Elastic Disaster Recovery continuously replicates the source server's disk blocks to a low-cost staging area in AWS, giving a sub-minute recovery point, and launches full recovery instances in minutes when needed. Because only lightweight staging resources run during normal operation, it is the pilot-light approach with the lowest cost. A warm standby RDS instance with DMS runs a database continuously, which costs more, and DMS CDC on SQL Server adds setup complexity. Always On availability groups require SQL Server Enterprise licensing and an active second site, which is the most expensive choice."
   },
   {
     "question_number": "540",
@@ -7609,8 +7668,11 @@
       "C": "From the AWS Organizations management account, use AWS Resource Access Manager (AWS RAM) to share the Savings Plan with other accounts.",
       "D": "Create an organization in AWS Organizations in a new payer account. Invite the other AWS accounts to join the organization from the management account. E. Create an organization in AWS Organizations in the existing AWS account with the existing EC2 instances and Savings Plan. Invite the other AWS accounts to join the organization from the management account."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "A",
+      "E"
+    ],
+    "explanation": "Savings Plan discounts can only flow between accounts that belong to the same organization with consolidated billing, and the sharing switch lives in the billing preferences of the management account. The accounts are currently billed individually, so an organization must first be created. Creating it from the account that already owns the Savings Plan and the EC2 instances makes that account the management account, after which the other accounts are invited to join and discount sharing is enabled there. Turning on sharing from a member account is not possible, and AWS RAM shares resources such as subnets and transit gateways, not billing discounts. Creating a brand-new payer account adds an unnecessary account when a suitable one already exists."
   },
   {
     "question_number": "544",
@@ -7974,8 +8036,10 @@
       "C": "Check for the events in Amazon CloudWatch Logs.",
       "D": "Check the trails in AWS CloudTrail for the EventBridge events."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "A"
+    ],
+    "explanation": "EventBridge publishes operational metrics to CloudWatch under its own namespace, including counts of how many times a rule matched an event, how many times a target was invoked, and how many invocations failed. Comparing those metrics for the rule in question shows whether events are matching the pattern and whether the target is being called, which is exactly the diagnostic needed. A dead-letter queue only receives events after failed delivery and would be empty if the rule never matched. EventBridge does not write its rule evaluations to CloudWatch Logs by itself, and CloudTrail records API calls such as creating or updating the rule, not each event the rule processes."
   },
   {
     "question_number": "570",
@@ -8003,7 +8067,7 @@
     "solutions": [
       "A"
     ],
-    "explanation": null
+    "explanation": "ACM can issue certificates only from Amazon's own certificate authority, so a certificate signed by a particular third-party public CA has to be generated outside AWS and then imported into ACM. Once imported, it can be attached to an API Gateway custom domain, which is where the TLS settings for the API endpoint are controlled. Lambda function URLs use an AWS-managed certificate and do not accept a custom certificate at all. Options that ask ACM itself to create a certificate signed by an external CA describe something the service cannot do."
   },
   {
     "question_number": "572",
@@ -8140,8 +8204,10 @@
       "C": "Set the Auto Scaling group's minimum capacity to two. Deploy four Spot Instances in one Availability Zone.",
       "D": "Set the Auto Scaling group's minimum capacity to four. Deploy two On-Demand Instances in one Availability Zone and two Spot Instances in a second Availability Zone."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "B"
+    ],
+    "explanation": "The application needs two instances running at all times, even if an entire Availability Zone is lost. With two instances split across two zones, a zone failure leaves only one, which breaks the requirement until Auto Scaling replaces the missing instance. Keeping four instances, two in each zone, means the loss of one zone still leaves two running instances with no interruption. Spot Instances can be interrupted at any time, so they cannot be relied on for a minimum that must always be met, and placing all capacity in a single zone offers no protection from a zone outage at all."
   },
   {
     "question_number": "582",
@@ -8211,7 +8277,7 @@
     "solutions": [
       "B"
     ],
-    "explanation": null
+    "explanation": "An AWS account can belong to only one organization at a time. The R&D account therefore has to leave the existing organization first, after which the new management account sends it an invitation to join the new organization. Being a member of two organizations simultaneously is not possible, and making the new management account a member of the old organization would defeat the purpose of separating. Creating a fresh R&D account and migrating resources into it is far more work than simply moving the existing account between organizations."
   },
   {
     "question_number": "587",
@@ -8392,8 +8458,12 @@
       "C": "Physical security and access controls of the data center environment",
       "D": "Availability of the Outposts infrastructure including the power supplies, servers, and networking equipment within the Outposts racks E. Physical maintenance of Outposts components F. Providing extra capacity for Amazon ECS clusters to mitigate server failures and maintenance events"
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "A",
+      "C",
+      "F"
+    ],
+    "explanation": "Outposts extends AWS infrastructure into the customer's facility, so the shared responsibility model splits along that line. The customer owns the physical environment: supplying reliable power and network connectivity to the racks, and controlling physical access to the data center. AWS also recommends that customers provision extra capacity so that workloads can be rescheduled around server failures and maintenance events, since AWS cannot add servers to an on-premises rack on demand. AWS remains responsible for the Outposts equipment itself, including the hypervisor and the services running on it, the servers, networking gear, and power supplies inside the racks, and the physical maintenance and replacement of those components."
   },
   {
     "question_number": "600",
@@ -8516,8 +8586,10 @@
       "C": "Store the IP addresses in an Amazon DynamoDB table. Configure an AWS Lambda authorization function on the ALB to validate that incoming requests are from the registered IP addresses.",
       "D": "Configure the network ACL on the subnet that contains the public interface of the ALB. Update the ingress rules on the network ACL with entries for each of the registered IP addresses."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "A"
+    ],
+    "explanation": "The requirement is to allow HTTPS only from a large, changing list of registered store IP addresses. AWS WAF integrates directly with the Application Load Balancer and supports IP set rules that can hold many thousands of addresses or CIDR ranges, which can be updated through the API as stores register. Network ACLs are capped at a small number of rules per ACL and could never hold 20,000 entries. Firewall Manager is an orchestration layer for deploying WAF and other policies across accounts, not the filtering mechanism itself. Application Load Balancers do not have a Lambda authorizer feature; that exists on API Gateway, and checking addresses in DynamoDB per request would add latency and custom code."
   },
   {
     "question_number": "609",
@@ -8813,7 +8885,7 @@
     "solutions": [
       "D"
     ],
-    "explanation": null
+    "explanation": "RDS Blue/Green Deployments create a fully synchronized copy of the production environment, the green environment, on which the new engine version can be applied and tested while the blue environment keeps serving traffic. Logical replication keeps the green side current, and switchover takes about a minute with guardrails that prevent data loss, so testing and cutover are both covered with minimal manual work. Upgrading in place after a snapshot gives no way to test first without downtime risk. Native backup and restore or a DMS replication both require the company to provision and manage a second database and the migration process themselves."
   },
   {
     "question_number": "630",
@@ -8911,7 +8983,7 @@
     "solutions": [
       "C"
     ],
-    "explanation": null
+    "explanation": "S3 events currently fan out through SNS, which pushes to subscribers immediately and does not buffer. Placing an SQS queue between SNS and Lambda makes the pipeline scalable and resilient: the queue absorbs bursts of file uploads, Lambda polls it and scales its concurrency to match the backlog, and failed invocations return to the queue for retry instead of being lost. Routing events through ECS or EKS before Lambda adds container infrastructure to operate for no benefit. AWS Server Migration Service is a tool for migrating on-premises servers and has nothing to do with event delivery."
   },
   {
     "question_number": "637",
@@ -8937,8 +9009,10 @@
       "C": "Create an S3 File Gateway. Create a share for uploading and a share for downloading. Allow employees to mount shares on their local computers to use S3 File Gateway.",
       "D": "Configure AWS Transfer Family SFTP endpoints. Select the custom identity provider options. Use AWS Secrets Manager to manage the user credentials Instruct employees to use Transfer Family."
     },
-    "solutions": null,
-    "explanation": null
+    "solutions": [
+      "A"
+    ],
+    "explanation": "Presigned URLs let a specific object in S3 be uploaded or downloaded for a limited time without giving the recipient any AWS credentials or console access. Generating them from a Lambda function means the company needs no user accounts to create, no file gateway hardware, and no identity provider to run, while access remains scoped to one object and expires automatically. Creating an IAM user per employee multiplies credentials to manage and rotate and is not a recommended pattern for a global workforce. An S3 File Gateway is an appliance for on-premises sites, not a way to serve remote individuals. Transfer Family with a custom identity provider requires building and maintaining the provider and managing credentials in Secrets Manager, which is more overhead than the requirement allows."
   },
   {
     "question_number": "639",
@@ -9038,7 +9112,7 @@
     "solutions": [
       "B"
     ],
-    "explanation": null
+    "explanation": "The keys must physically remain outside AWS in an on-premises key manager, and the solution has to work with several vendors' products. The KMS external key store is designed for this: KMS keeps only a reference to the key, and every encrypt or decrypt request is forwarded through a proxy to the external key manager, which can be any product that implements the external key store proxy API. The CloudHSM-backed key store options keep the key material inside AWS-hosted hardware, which violates the requirement that keys stay outside the cloud. The default KMS key store stores key material in AWS-managed HSMs for the same reason."
   },
   {
     "question_number": "646",
