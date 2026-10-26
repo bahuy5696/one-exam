@@ -519,6 +519,38 @@ body {
   white-space: pre-wrap;
 }
 
+/* Key words that point to the answer (shown under the explanation) */
+.key-words {
+  margin-top: 14px;
+}
+.key-words-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.key-words-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.key-word {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--onvue-dark);
+  background: var(--amber-bg);
+  border: 1px solid var(--onvue-accent);
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+
 /* Footer */
 .nav-footer {
   position: fixed;

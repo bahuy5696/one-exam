@@ -25,8 +25,10 @@ export default function QuestionCard() {
     (k) => question.choices && question.choices[k] != null
   );
 
-  // Practice-mode instant feedback: only reveal once the user has answered.
-  const revealed = instantFeedback && selected.length > 0;
+  // Practice-mode instant feedback: only reveal once the user has picked as
+  // many choices as the question requires (1 for single-answer, N for multi).
+  const requiredCount = Math.max(solutions.length, 1);
+  const revealed = instantFeedback && selected.length >= requiredCount;
 
   const handleSelect = (choice) => {
     if (revealed) return; // lock after reveal in instant-feedback mode
@@ -100,6 +102,18 @@ export default function QuestionCard() {
             </span>
           </div>
           <p className="explanation-text">{question.explanation}</p>
+          {Array.isArray(question.key_word) && question.key_word.length > 0 && (
+            <div className="key-words">
+              <span className="key-words-label">Key words</span>
+              <ul className="key-words-list">
+                {question.key_word.map((kw) => (
+                  <li key={kw} className="key-word">
+                    {kw}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </div>

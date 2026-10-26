@@ -3,7 +3,7 @@
 **Project Title:** AWS Solutions Architect Associate (SAA-C03) Local Practice Exam Simulator (`one-exam`)
 **Target Framework:** React (Create React App - CRA)
 **UI Reference:** Pearson VUE OnVUE Exam Interface
-**Data Source:** `public/question.json` (or `src/data/question.json`)
+**Data Source:** `src/data/questions.json`
 
 ---
 
@@ -22,10 +22,10 @@ The app will load questions from a local `question.json` file, dynamically organ
 
 ---
 
-## 3. Data Specification (`question.json`)
+## 3. Data Specification (`questions.json`)
 
 ### Input Data Format
-The app reads from `question.json` with the following structure:
+The app reads from `src/data/questions.json` with the following structure:
 ```json
 [
   {
@@ -40,15 +40,33 @@ The app reads from `question.json` with the following structure:
     "solutions": [
       "A"
     ],
-    "explanation": "Turn on S3 Transfer Acceleration on the destination S3 bucket..."
+    "explanation": "Turn on S3 Transfer Acceleration on the destination S3 bucket...",
+    "key_word": [
+      "across multiple continents",
+      "500 G",
+      "from each site daily"
+    ]
   }
 ]
 ```
 
+### Field Rules
+| Field | Type | Rule |
+|---|---|---|
+| `question_number` | string | Unique across the bank. Matches the ExamTopics SAA-C03 topic 1 numbering, which is used to cross-check answers. |
+| `question` | string | Full question text, including the `(Choose two.)` / `(Choose three.)` hint for multi-answer questions. |
+| `choices` | object | One key per option, `A` to `F` (the UI supports up to `G`). Every option has its own key. Options must never be merged into the text of another option (e.g. `"D": "... E. ..."`). |
+| `solutions` | string[] | Correct option letters. The count must equal the number requested by the question (1, 2 or 3). Every letter must exist in `choices`. |
+| `explanation` | string | Explains why the correct options are right and why the others are wrong. It must not copy the text of the correct option. |
+| `key_word` | string[] | 1–5 short phrases that point to the correct answer, ordered from most to least decisive. Each phrase must be a verbatim, case-sensitive substring of `question` so it can be highlighted later. Never contains text that only appears in the choices. |
+
+### Question Pool Filtering
+At load time, `ExamContext` keeps only answerable questions: at least 2 choices and a non-empty `solutions` array. A question whose source data is unusable (e.g. Q477, whose options were images) is kept in the file with `"solutions": []` so it is excluded from every exam.
+
 ### Dynamic Logic Requirements
 1. **Multi-choice Detection:**
    * If `solutions.length === 1`: Render Radio Buttons (Single choice).
-   * If `solutions.length > 1`: Render Checkboxes (Multiple choice) with dynamic text: *"Select [N] choices"*.
+   * If `solutions.length > 1`: Render Checkboxes (Multiple choice) with dynamic text: *"Choose [N] answers"*, where N is `solutions.length`.
 2. **Domain Classification & Distribution:**
    AWS SAA-C03 Official Domain Weights:
    * **Domain 1: Design Secure Architectures (30%)** (~19-20 questions for a 65-question exam)
@@ -74,8 +92,17 @@ The app reads from `question.json` with the following structure:
 #### A. Exam Start / Config Screen
 * Option to select mode:
   1. **Full Exam Mode:** 65 questions, 130-minute timer, strict OnVUE simulation (no instant answers).
-  2. **Practice / Study Mode:** Custom question count, no strict timer, instant explanation toggle per question.
+  2. **Practice / Study Mode:** Custom question count, optional timer (2 min/question), instant explanation toggle.
 * "Start Exam" button.
+
+#### A.1 Practice Mode Instant Feedback
+When "Show explanation instantly after answering" is on:
+* **Reveal trigger:** the answer is revealed and the question is locked only after the user has selected as many choices as the question requires. Single-answer questions reveal on the first click. A "Choose 3 answers" question reveals on the third selected choice. Before that, multi-answer choices can be toggled freely.
+* **Revealed content, in order:**
+  1. Verdict (`✓ Correct` only if the selection exactly matches `solutions`, otherwise `✗ Incorrect`) and `Correct answer: B, C, F`.
+  2. Correct choices highlighted green, wrong selections red.
+  3. `explanation` text.
+  4. **Key words** block directly under the explanation: a `KEY WORDS` label followed by each `key_word` phrase as a chip (amber background, AWS orange border). Hidden when `key_word` is missing or empty.
 
 #### B. Active Exam Screen (Pearson VUE OnVUE Header & Layout)
 * **Top Bar:**
@@ -85,7 +112,7 @@ The app reads from `question.json` with the following structure:
   * **Flag for Review** checkbox / toggle button (top right).
 * **Body Area:**
   * Clean presentation of `question` text.
-  * Option choices rendered with clear clickable containers (`A`, `B`, `C`, `D`). Highlight selected choices.
+  * Option choices rendered with clear clickable containers (`A` to `F`, in letter order, only the keys present in `choices`). Highlight selected choices.
 * **Bottom Navigation Bar:**
   * `[< Previous]` button.
   * `[Next >]` button.
@@ -140,7 +167,7 @@ src/
 │   ├── scoreCalculator.js    # AWS scaled score (100-1000) & domain accuracy
 │   └── storage.js            # LocalStorage persistence helpers
 ├── data/
-│   └── question.json         # Raw question bank
+│   └── questions.json        # Question bank (choices, solutions, explanation, key_word)
 ├── App.jsx
 └── index.js
 ```
@@ -160,6 +187,12 @@ When writing the code for `one-exam`, please follow these steps sequentially:
    * Build `QuestionGridModal` showing answered/flagged statuses.
    * Build `ResultDashboard` showing AWS scaled score (100–1000), domain breakdown bars, and step-by-step solution review with `explanation`.
 5. [ ] **Testing & Polish:** Ensure full responsiveness, smooth navigation, and edge case handling (e.g., handling missing fields gracefully).
+6. [ ] **Data Quality:** Validate `questions.json` against the Field Rules in section 3. Every `key_word` phrase is a substring of its question, every `solutions` letter exists in `choices`, no option text contains another option's letter prefix, and the `solutions` count matches the `(Choose N.)` hint.
+
+### Known Data Issues
+* About 35 questions have question text cut off mid-sentence (e.g. Q1, Q19, Q73, Q92, Q461, Q471, Q610). Their `key_word` lists are short because little text remains. Q73 and Q92 lost their `(Choose two.)` hint to the truncation.
+* Q96, Q253, Q423, Q429 and Q494 refer to an IAM policy or JSON document that is missing from the data.
+* About 12 stored answers are debatable and were left unchanged (e.g. Q82, Q136, Q156, Q157, Q324, Q328, Q372, Q405, Q523, Q536, Q663).
 
 ---
 *Generated for project `one-exam` - Local AWS SAA-C03 OnVUE Simulator Prompt.*
